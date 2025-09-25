@@ -1,20 +1,24 @@
 let lastTarget = null;
 let hoverStartTime = null;
 const OVERLAY_DURATION = 100; // 0.1초
-const HIGHLIGHT_CLASS = "gaze-highlight-box";
-const GAZE_CURSOR_ID = "gaze-cursor";
+const U_HIGHLIGHT_CLASS = "user-highlight-box";
+const USER_CURSOR_ID = "user-cursor";
 
-// 시선 추적용 빨간 점 생성(현재는 마우스 커서 위치)
+const U_DB_NAME = "userDB";
+const U_STORE_NAME = "userElementStore";
+const U_DB_VERSION = 1;
+let idCounter = 0;
+
 function createGazeCursor() {
-    let cursor = document.getElementById(GAZE_CURSOR_ID);
+    let cursor = document.getElementById(USER_CURSOR_ID);
     if (!cursor) {
         cursor = document.createElement("div");
-        cursor.id = GAZE_CURSOR_ID;
+        cursor.id = USER_CURSOR_ID;
         Object.assign(cursor.style, {
             position: "fixed",
             width: "10px",
             height: "10px",
-            backgroundColor: "red",
+            backgroundColor: "blue",
             borderRadius: "50%",
             pointerEvents: "none",
             zIndex: 9999,
@@ -31,7 +35,7 @@ function highlightElement(target) {
 
     const rect = target.getBoundingClientRect();
     const highlight = document.createElement("div");
-    highlight.className = HIGHLIGHT_CLASS;
+    highlight.className = U_HIGHLIGHT_CLASS;
 
     Object.assign(highlight.style, {
         position: "fixed",
@@ -39,7 +43,7 @@ function highlightElement(target) {
         left: `${rect.left}px`,
         width: `${rect.width}px`,
         height: `${rect.height}px`,
-        backgroundColor: "rgba(255, 0, 0, 0.3)",
+        backgroundColor: "rgba(0, 0, 255, 0.3)",
         pointerEvents: "none",
         zIndex: 9998
     });
@@ -49,7 +53,7 @@ function highlightElement(target) {
 
 // 기존 강조 제거
 function removeHighlight() {
-    document.querySelectorAll(`.${HIGHLIGHT_CLASS}`).forEach(el => el.remove());
+    document.querySelectorAll(`.${U_HIGHLIGHT_CLASS}`).forEach(el => el.remove());
 }
 
 // 마우스 이동 감지하여 처리
@@ -88,26 +92,27 @@ document.addEventListener("mousemove", (event) => {
 
 
 
-const SUMMARY_BUTTON_ID = "summary-button";
+// const SUMMARY_BUTTON_ID = "summary-button";
 
-//텍스트 요약 요청 보내기
-function sendTextToLLM(textContent) {
-  chrome.runtime.sendMessage({
-    action: "summarizeText",
-    text: textContent
-  }, (response) => {
-    if (chrome.runtime.lastError) {
-      console.error(" LLM 메시지 전송 실패:", chrome.runtime.lastError.message);
-    } else {
-      console.log(" 요약 요청 전송 성공", response);
-    }
-  });
-}
+// //텍스트 요약 요청 보내기
+// function sendTextToLLM(textContent) {
+//   chrome.runtime.sendMessage({
+//     action: "summarizeText",
+//     text: textContent
+//   }, (response) => {
+//     if (chrome.runtime.lastError) {
+//       console.error(" LLM 메시지 전송 실패:", chrome.runtime.lastError.message);
+//     } else {
+//       console.log(" 요약 요청 전송 성공", response);
+//     }
+//   });
+// }
 
 
 document.addEventListener("contextmenu", (e) => {
   const target = e.target;
-
+    const rect = target.getBoundingClientRect();
+    const url = window.location.href;
   // 기본 우클릭 메뉴 방지
   e.preventDefault();
 
@@ -131,4 +136,43 @@ document.addEventListener("contextmenu", (e) => {
       console.log(`   - ${attr.name}: ${attr.value}`);
   });
   console.log(" ------------------------------");
+
+
+  const attributes = {};
+  if (target.alt) attributes.alt = target.alt;
+  if (target.title) attributes.title = target.title;
+  if (target.placeholder) attributes.placeholder = target.placeholder;
+  if (target.href) attributes.href = target.href;
+  if (target.src) attributes.src = target.src;
+  if (target.type) attributes.type = target.type;
+
+
+const textContent = target.innerText?.trim() || target.textContent?.trim() || "";
+
+const data = {
+    timestamp: idCounter++, 
+    url,
+    elementMeta: {
+      id: target.id || null,
+      className: target.className || null,
+      tagName: target.tagName,
+      text: textContent.slice(0, 200),
+      rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+      attributes,
+    }
+  };
+
+  saveUserData(data, U_DB_NAME, U_DB_VERSION, U_STORE_NAME)
+    .then(() => console.log("User data saved successfully"))
+    .catch((error) => console.error("Error saving User data:", error));
+
 });
+
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.command === "saveData") {
+    exportUserDataToFile(U_DB_NAME, U_DB_VERSION, U_STORE_NAME);
+    sendResponse({ status: "ok" });
+    return true;
+  }});
+
