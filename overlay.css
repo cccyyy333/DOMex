@@ -1,0 +1,6 @@
+.eye-box {
+  position: fixed;
+  border: 2px solid #00ffcc;
+  background: rgba(0, 255, 204, 0.08);
+  z-index: 2147483647;
+}

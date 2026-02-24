@@ -4,10 +4,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DOM Extractor</title>
-    <script src="popup.js" defer></script>
+    <script src="./popup.js" defer></script>
+    <link rel="stylesheet" href="popup.css">
 </head>
 <body>
     <h2>DOM Extractor</h2>
     <button id="saveData">데이터 저장</button>
+
+    <fieldset>
+    <label>
+        <input role="switch" type="checkbox" id="visualize"/>
+        <span>visualize</span>
+    </label>
+    <label>
+        <input role="switch" type="checkbox" id="manage"/>
+        <span>manage</span>
+    </label>
+
+    <label>
+  Grid Rows
+  <input id="gridRows" type="range" min="1" max="10" value="3">
+</label>
+
+<label>
+  Grid Cols
+  <input id="gridCols" type="range" min="1" max="10" value="3">
+</label>
+</fieldset>
+
+<fieldset>
+    <label>Segmentation</label>
+    <button id="segStart">start</button>
+    <button id="segCancel">cancel</button>
+    <button id="segFinish">finish</button>
+</fieldset>
+
 </body>
 </html>
